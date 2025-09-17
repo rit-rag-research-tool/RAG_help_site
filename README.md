@@ -74,3 +74,7 @@ The architecture of the RAG system consists of a Node.js server that communicate
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
+
+
+## OPen Ai API
+https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses
