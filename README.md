@@ -15,7 +15,6 @@ rag-system-project
 │   │   │   └── utils
 │   │   │       └── openai.js   # Utility functions for OpenAI API interaction
 │   │   ├── package.json        # npm configuration file
-│   │   └── README.md           # Documentation for the Node.js part
 │   └── python
 │       ├── rag
 │       │   ├── __init__.py     # Marks the directory as a Python package
