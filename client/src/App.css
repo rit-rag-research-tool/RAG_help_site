@@ -1,0 +1,167 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* page-level padding and gentle background to center content */
+body {
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f7f8fb;
+}
+
+/* root wrapper centers the app horizontally and adds internal spacing */
+.app-root {
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+/* constrain main container, keep it centered and add internal padding */
+.app-container {
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+  border-radius: 8px;
+}
+
+/* layout */
+.app-container {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+/* main chat area */
+.chat-area {
+  flex: 1;
+  min-width: 0;
+}
+
+/* sidebar */
+.sidebar-area {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+/* messages box */
+.messages-box {
+  height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+/* message styles */
+.message-row { margin: 8px 0; }
+.msg-user { color: #0b5fff; }
+.msg-bot { color: #0b9f3b; }
+.msg-system { color: #b00; }
+
+/* input and button */
+.chat-input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+.send-button {
+  padding: 8px 12px;
+}
+
+/* sidebar sections */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 8px;
+}
+.sidebar-section { margin-bottom: 20px; }
+
+/* card-style sections for sources and past convos */
+.sidebar-card {
+  background: #ffffff;
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(15, 15, 15, 0.03);
+}
+
+/* title */
+.card-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #222;
+}
+
+/* lists inside cards */
+.sources-list,
+.convos-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.source-item,
+.convo-item {
+  padding: 6px 4px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+}
+
+/* small preview text */
+.conv-preview {
+  font-size: 12px;
+  color: #555;
+  margin-top: 6px;
+}
+
+/* placeholder text */
+.placeholder {
+  color: #777;
+  font-style: italic;
+  font-size: 13px;
+  padding: 6px 0;
+}
