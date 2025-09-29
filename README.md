@@ -6,22 +6,27 @@ This project implements a Retrieval-Augmented Generation (RAG) system that integ
 
 ```
 rag-system-project
-├── backend
+├── client
+│   ├── public
+│   │   ├──index.html
+│   ├── src
+│   │   ├──index.js
+├── server
 │   ├── node
 │   │   ├── src
 │   │   │   ├── app.js          # Entry point for the Node.js application
 │   │   │   ├── routes
 │   │   │   │   └── rag.js      # Routes for the RAG system
 │   │   │   └── utils
-│   │   │       └── openai.js   # Utility functions for OpenAI API interaction
+│   │   │       └── utils.js   # Utility functions for OpenAI API interaction
 │   │   ├── package.json        # npm configuration file
+│   │   ├──package-lock.json
 │   └── python
-│       ├── rag
-│       │   ├── __init__.py     # Marks the directory as a Python package
-│       │   ├── retriever.py     # Implements retrieval logic
-│       │   └── generator.py      # Implements generation logic using OpenAI API
+│       ├── __init__.py     # Marks the directory as a Python package
+│       ├── main.py     # Implements retrieval logic
+│       └── rag.py      # Implements generation logic using OpenAI API
+│       └── utils.py      # Implements generation logic using OpenAI API
 │       ├── requirements.txt     # Python dependencies
-│       └── README.md            # Documentation for the Python part
 ├── .env                         # Environment variables (e.g., OpenAI API key)
 └── README.md                    # Overview of the entire project
 ```
