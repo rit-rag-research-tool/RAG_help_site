@@ -1,0 +1,5 @@
+This folder contains an archived Node/Express layer that was used previously to proxy requests to the Python FastAPI backend.
+
+The project has been simplified to use the Python backend directly for development.
+
+Keep this folder if you want to restore the Node layer later, or delete it to fully remove the Node proxy.

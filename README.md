@@ -10,75 +10,69 @@ rag-system-project
 │   ├── public
 │   │   ├──index.html
 │   ├── src
-│   │   ├──index.js
-├── server
-│   ├── node
-│   │   ├── src
-│   │   │   ├── app.js          # Entry point for the Node.js application
-│   │   │   ├── routes
-│   │   │   │   └── rag.js      # Routes for the RAG system
-│   │   │   └── utils
-│   │   │       └── utils.js   # Utility functions for OpenAI API interaction
-│   │   ├── package.json        # npm configuration file
-│   │   ├──package-lock.json
-│   └── python
-│       ├── __init__.py     # Marks the directory as a Python package
-│       ├── main.py     # Implements retrieval logic
-│       └── rag.py      # Implements generation logic using OpenAI API
-│       └── utils.py      # Implements generation logic using OpenAI API
-│       ├── requirements.txt     # Python dependencies
-├── .env                         # Environment variables (e.g., OpenAI API key)
-└── README.md                    # Overview of the entire project
+# RAG_help_site — simplified
+
+This repo has been simplified for development: the React client talks directly to the Python FastAPI backend. The Node/Express layer is archived (see `server/node/ARCHIVED.txt`).
+
+Architecture now:
+
+- `client/` — React frontend (Create React App). Dev server runs on http://localhost:3000 and proxies API calls to the Python backend.
+- `server/python/` — FastAPI backend exposing `/rag` on http://127.0.0.1:8000.
+
+Goals of simplification:
+
+- Remove the Node proxy/middleware to reduce complexity.
+- Avoid header/cookie issues by defaulting the client to not send cookies.
+- Keep the Node code archived in case you want to restore it later.
+
+Prerequisites
+
+- Node.js and npm installed
+- Python 3.10+ installed
+- An OpenAI API key (set in `OPENAI_API_KEY`)
+
+Quick start (two PowerShell terminals)
+
+1) Start the Python backend (FastAPI)
+
+Open a PowerShell terminal and run:
+
+```powershell
+cd C:\Users\Rae\Desktop\RAG_help_site\server\python
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+# Either set the env var here or create server/python/.env with OPENAI_API_KEY
+$env:OPENAI_API_KEY = "your_real_key_here"
+uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-## Setup Instructions
+2) Start the React client
 
-### Node.js Backend
+Open a second PowerShell terminal and run:
 
-1. Navigate to the `backend/node` directory.
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Start the server:
-   ```
-   node src/app.js
-   ```
+```powershell
+cd C:\Users\Rae\Desktop\RAG_help_site\client
+npm install
+npm start
+```
 
-### Python Module
+Notes
 
-1. Navigate to the `backend/python` directory.
-2. Create a virtual environment (optional but recommended):
-   ```
-   python -m venv venv
-   ```
-3. Activate the virtual environment:
-   - On Windows:
-     ```
-     venv\Scripts\activate
-     ```
-   - On macOS/Linux:
-     ```
-     source venv/bin/activate
-     ```
-4. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+- `client/package.json` proxies to `http://localhost:8000` so requests to `/rag` from the client reach the Python backend in development.
+- The client fetch has been updated to omit credentials (no cookies) and to check `res.ok` before parsing JSON.
+- The Node layer is left in `server/node/` but marked archived in `server/node/ARCHIVED.txt`.
 
-## Usage
+Where to look to verify everything is up
 
-- The Node.js backend serves as the API layer, handling incoming requests and interacting with the Python module for data retrieval and response generation.
-- The Python module contains the logic for retrieving data and generating responses using OpenAI's GPT-5 API.
+- Browser: http://localhost:3000 — use the chat UI.
+- Python terminal: Uvicorn logs; endpoint: http://127.0.0.1:8000/rag
+- Browser DevTools Network tab: inspect POST /rag and the JSON response with `answer`.
 
-## Architecture
+Troubleshooting
 
-The architecture of the RAG system consists of a Node.js server that communicates with a Python backend. The Node.js application handles API requests, while the Python module manages data retrieval and response generation, leveraging the capabilities of OpenAI's GPT-5 API.
+- If `uvicorn` fails to start: confirm you activated the virtualenv and installed requirements.
+- If OpenAI errors occur: ensure `OPENAI_API_KEY` is set.
+- If the UI shows "Backend error" or similar: open DevTools → Network and inspect the response status and body.
 
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
-
-
-## OPen Ai API
-https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses
+If you want, I can fully remove the `server/node` folder instead of archiving it — say the word and I'll delete it.

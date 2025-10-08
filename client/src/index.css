@@ -1,13 +1,47 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Theme tokens for your palette */
+:root{
+  /* base */
+  --bg: #000000;
+  --bg-2:#0b0b0b;
+  --card:#0f0f10;
+  --card-2:#000000;
+  --text:#ffffff;
+
+  /* palette */
+  --accent:#F76902;                 /* 247,105,2 */
+  --accent-rgb: 247,105,2;
+  --muted:#A2AAAD;                  /* 162,170,173 */
+  --muted-rgb:162,170,173;
+  --beige:#D7D2CB;                  /* 215,210,203 */
+  --beige-rgb:215,210,203;
+  --gray-200:#D0D3D4;               /* 208,211,212 */
+  --gray-400:#7C878E;               /* 124,135,142 */
+
+  /* ui */
+  --border: rgba(208,211,212,.18);
+  --radius:14px;
+  --shadow: 0 8px 24px rgba(0,0,0,.45);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+*{ box-sizing: border-box; }
+html, body, #root { height: 100%; }
+
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  color: var(--text);
+  /* subtle orange + warm beige glow over black */
+  background:
+    radial-gradient(1100px 760px at 10% -10%, rgba(var(--accent-rgb), .10), transparent 60%),
+    radial-gradient(900px 700px at 120% 10%, rgba(var(--beige-rgb), .10), transparent 60%),
+    linear-gradient(180deg, var(--bg-2), var(--bg) 40%, var(--bg) 100%);
 }
+
+/* Links */
+a{ color: var(--accent); text-decoration: none; }
+a:hover{ text-decoration: underline; }
+
+/* Scrollbars (WebKit) */
+*::-webkit-scrollbar{ width:10px; height:10px;}
+*::-webkit-scrollbar-thumb{ background:#1c1f24; border-radius:999px;}
+*::-webkit-scrollbar-track{ background:transparent;}
