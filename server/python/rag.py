@@ -1,74 +1,161 @@
 # rag.py
 import os
 import re
+import math
 from typing import List, Dict, Tuple
 from openai import OpenAI
+from dropbox_loader import load_corpus_from_dropbox
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# regex helpers
+# --- regex helpers (unchanged) ---
 MD_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
 BARE_URL = re.compile(r"https?://\S+")
-SOURCES_BLOCK = re.compile(r"(?is)\n+sources\s*:\s*(.+)$")  # everything after "Sources:"
+SOURCES_BLOCK = re.compile(r"(?is)\n+sources\s*:\s*(.+)$")
 
 def strip_inline_links(text: str) -> str:
-    """Remove inline links from the answer body."""
     if not text:
         return text
-    text = MD_LINK.sub(r"\1", text)  # [title](url) -> title
-    text = BARE_URL.sub("", text)    # remove bare URLs
+    text = MD_LINK.sub(r"\1", text)
+    text = BARE_URL.sub("", text)
     return " ".join(text.split())
 
 def parse_sources_block(ans: str) -> Tuple[str, List[Dict[str, str]]]:
-    """
-    Extract a 'Sources:' section from the end of ans, return (body_without_sources, citations[]).
-    Expected bullet format (flexible):
-      - Title — https://example.com
-      - https://example.com
-    """
     citations: List[Dict[str, str]] = []
     body = ans
-
     m = SOURCES_BLOCK.search(ans)
     if not m:
         return body, citations
-
     block = m.group(1).strip()
-    # Split to lines, ignore empty
     lines = [l.strip(" -*•\t") for l in block.splitlines() if l.strip()]
     for line in lines:
-        # find first URL in the line
         url_match = BARE_URL.search(line)
         if not url_match:
             continue
         url = url_match.group(0)
-        # title is the line with url removed + separators trimmed
         title = line.replace(url, "").strip(" -—:()") or url
         citations.append({"title": title, "url": url})
-
-    # Remove the sources block from the main answer
     body = ans[:m.start()].rstrip()
     return body, citations
 
-def retrieve_docs(query: str):
-    # Keep your own retrieval here (stubbed)
-    return ["Document 1", "Document 2"]
+# --- Simple in-memory index ---
+_CORPUS: List[Dict[str, str]] = []
+_CHUNKS: List[Dict[str, str]] = []  # {"chunk_id","doc_id","title","path","text"}
+_EMBS: List[List[float]] = []
+_READY: bool = False
+
+def _chunk(text: str, title: str, path: str, doc_id: str, max_len: int = 1200, overlap: int = 150):
+    """Very simple character-based chunking."""
+    chunks = []
+    i = 0
+    n = len(text)
+    while i < n:
+        j = min(n, i + max_len)
+        piece = text[i:j]
+        if piece.strip():
+            chunks.append({
+                "chunk_id": f"{doc_id}:{i}",
+                "doc_id": doc_id,
+                "title": title,
+                "path": path,
+                "text": piece.strip()
+            })
+        i = j - overlap
+        if i <= 0:
+            i = j
+    return chunks
+
+def _cos(a: List[float], b: List[float]) -> float:
+    num = 0.0
+    da = 0.0
+    db = 0.0
+    for x, y in zip(a, b):
+        num += x * y
+        da += x * x
+        db += y * y
+    if da == 0 or db == 0:
+        return 0.0
+    return num / math.sqrt(da * db)
+
+def _embed_texts(texts: List[str]) -> List[List[float]]:
+    if not texts:
+        return []
+    res = client.embeddings.create(
+        model="text-embedding-3-large",
+        input=texts
+    )
+    return [d.embedding for d in res.data]
+
+def _ensure_index():
+    global _READY, _CORPUS, _CHUNKS, _EMBS
+    if _READY:
+        return
+    token = os.getenv("DROPBOX_ACCESS_TOKEN")
+    root = os.getenv("DROPBOX_ROOT", "/")
+    max_bytes = int(os.getenv("DOC_MAX_BYTES", "4000000"))
+
+    if not token:
+        # No Dropbox configured; keep a trivial corpus (optional)
+        _CORPUS = []
+        _CHUNKS = []
+        _EMBS = []
+        _READY = True
+        return
+
+    # 1) Load corpus from Dropbox
+    _CORPUS = load_corpus_from_dropbox(token, root, max_bytes=max_bytes)
+
+    # 2) Chunk
+    all_chunks: List[Dict[str, str]] = []
+    for d in _CORPUS:
+        all_chunks.extend(_chunk(d["text"], d["title"], d["path"], d["id"]))
+    _CHUNKS = all_chunks
+
+    # 3) Embed chunks
+    _EMBS = _embed_texts([c["text"] for c in _CHUNKS])
+
+    _READY = True
+
+def retrieve_docs(query: str, k: int = 8) -> List[Dict[str, str]]:
+    """
+    Returns top-k chunks: [{"title","path","text"}].
+    Falls back to empty list if no Dropbox configured or no chunks.
+    """
+    _ensure_index()
+    if not _CHUNKS or not _EMBS:
+        return []
+
+    q_emb = _embed_texts([query])[0]
+    scored = []
+    for emb, ch in zip(_EMBS, _CHUNKS):
+        scored.append(( _cos(q_emb, emb), ch ))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    return [t[1] for t in scored[:k]]
+
+def _format_context(chunks: List[Dict[str, str]]) -> str:
+    """
+    Lightly format chunks with titles so the model can cite intelligently.
+    """
+    lines = []
+    for i, ch in enumerate(chunks, 1):
+        lines.append(f"[{i}] Title: {ch['title']} | Path: {ch['path']}\n{ch['text']}\n")
+    return "\n---\n".join(lines)
 
 def generate_answer(query: str):
-    docs = retrieve_docs(query)
-    context = "\n".join(docs)
+    chunks = retrieve_docs(query, k=8)
+    context = _format_context(chunks) if chunks else "No local corpus available."
 
-    # Single call: ask the model to ALWAYS put sources in a Sources: section (no inline links)
     system_msg = (
         "You are a helpful assistant with web_search access. "
         "When the answer involves public or recent facts, USE web_search. "
         "Do NOT put inline links in the body. "
         "After the answer, add a section exactly titled 'Sources:' and list up to 6 items, "
         "one per line, in the format 'Title — URL'. Prefer authoritative sites. "
-        "If you searched, include at least one source."
+        "If you searched, include at least one source. "
+        "If local context is provided, prefer citing those sources by their titles if relevant."
     )
 
-    user_msg = f"Context:\n{context}\n\nQuestion: {query}"
+    user_msg = f"Local Context Chunks (for reference):\n{context}\n\nQuestion: {query}"
 
     response = client.responses.create(
         model="gpt-5",
@@ -77,17 +164,11 @@ def generate_answer(query: str):
             {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ],
-        # temperature=0.2,
-        # reasoning={"effort": "medium"},
     )
 
-    # Raw text the model returned (may contain 'Sources:' section)
     raw_text = (getattr(response, "output_text", "") or "").strip()
-
-    # Parse Sources block -> citations[], and remove it from body
     body, citations = parse_sources_block(raw_text)
 
-    # Fallback: if no sources block, attempt to collect tool annotations (when present)
     if not citations:
         try:
             for block in response.output:
@@ -99,19 +180,13 @@ def generate_answer(query: str):
         except Exception:
             pass
 
-    # Finally, ensure no inline links remain in the body
     body = strip_inline_links(body)
 
     return {"text": body, "citations": citations[:6]}
 
-
-# --- Title generation helpers ---
+# ----- Title generation (unchanged) -----
 
 def _serialize_transcript(messages, limit_chars=2000, max_msgs=12) -> str:
-    """
-    Turn your UI messages into a compact transcript string.
-    Keeps the last few turns and trims to ~limit_chars for cheap, fast titles.
-    """
     role_map = {"User": "User", "RAG": "Assistant", "System": "System"}
     lines = []
     tail = messages[-max_msgs:] if messages else []
@@ -120,7 +195,6 @@ def _serialize_transcript(messages, limit_chars=2000, max_msgs=12) -> str:
         t = (m.get("text") or "").strip()
         if not t:
             continue
-        # single-line for compactness
         t = " ".join(t.split())
         lines.append(f"{r}: {t}")
     s = "\n".join(lines)
@@ -129,25 +203,16 @@ def _serialize_transcript(messages, limit_chars=2000, max_msgs=12) -> str:
     return s
 
 def _postprocess_title(s: str) -> str:
-    """Keep it safe and pretty: no quotes/emojis/trailing punctuation; cap length."""
     if not s:
         return "New chat"
     s = s.strip().strip('"').strip("'")
-    # drop trailing punctuation and emojis
     s = s.rstrip(".!?:—- ")
-    # hard cap
     if len(s) > 60:
         s = s[:57].rstrip() + "…"
     return s or "New chat"
 
 def generate_title(messages):
-    """
-    Ask GPT for a concise, human-readable chat title (3–7 words).
-    No schema—plain text for maximum compatibility.
-    """
     transcript = _serialize_transcript(messages)
-
-    # If we somehow have nothing yet, fall back immediately
     if not transcript:
         return "New chat"
 
@@ -167,14 +232,9 @@ def generate_title(messages):
                     "Return ONLY the title text."
                 ),
             },
-            {
-                "role": "user",
-                "content": f"Conversation transcript:\n{transcript}\n\nTitle:",
-            },
+            {"role": "user", "content": f"Conversation transcript:\n{transcript}\n\nTitle:"},
         ],
         temperature=0.2,
-        # No tools, no JSON schema (to avoid 500s on picky SDKs)
     )
-
     raw = (getattr(response, "output_text", "") or "").strip()
     return _postprocess_title(raw)

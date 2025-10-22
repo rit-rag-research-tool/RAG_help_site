@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from rag import generate_answer, generate_title
+from rag import generate_answer, generate_title, _ensure_index
 import traceback
 
 # Auto-load environment variables from server/python/.env if present
@@ -9,6 +9,14 @@ load_dotenv()
 
 app = FastAPI()
 
+@app.on_event("startup")
+async def warm_index():
+    # Build the Dropbox corpus + embeddings once when the server starts
+    try:
+        _ensure_index()
+        print("RAG index warm and ready.")
+    except Exception as e:
+        print(f"RAG index warm failed: {e}")
 
 @app.post("/rag")
 async def rag_endpoint(request: Request):
