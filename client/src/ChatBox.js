@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export default function ChatBox({ messages, onSend, isLoading = false, loadingHint = "" }) {
+export default function ChatBox({ messages, onSend, isLoading = false, loadingHint = "", placeholderQuestions = [] }) {
   const [input, setInput] = useState('');
   const endRef = useRef();
 
@@ -8,8 +8,8 @@ export default function ChatBox({ messages, onSend, isLoading = false, loadingHi
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const handleSend = () => {
-    const t = input.trim();
+  const handleSend = (text = null) => {
+    const t = (text || input).trim();
     if (!t || isLoading) return;
     onSend(t);
     setInput('');
@@ -40,6 +40,45 @@ export default function ChatBox({ messages, onSend, isLoading = false, loadingHi
 
         <div ref={endRef} />
       </div>
+
+      {/* Placeholder questions - show when conversation has messages but user hasn't started typing */}
+      {placeholderQuestions.length > 0 && !input && !isLoading && (
+        <div className="placeholder-questions" style={{
+          padding: '12px 16px',
+          display: 'flex',
+          gap: '8px',
+          flexWrap: 'wrap',
+          borderTop: '1px solid rgba(0,0,0,0.1)',
+        }}>
+          {placeholderQuestions.map((q, i) => (
+            <button
+              key={i}
+              onClick={() => handleSend(q)}
+              className="placeholder-btn"
+              style={{
+                padding: '8px 12px',
+                borderRadius: '16px',
+                border: '1px solid rgba(0,0,0,0.15)',
+                background: 'white',
+                cursor: 'pointer',
+                fontSize: '13px',
+                transition: 'all 0.2s',
+                color: '#333',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(0,0,0,0.05)';
+                e.target.style.borderColor = 'rgba(0,0,0,0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.borderColor = 'rgba(0,0,0,0.15)';
+              }}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="composer">
         <input

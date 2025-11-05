@@ -44,7 +44,7 @@ const save = (convos) => {
   } catch {}
 };
 
-// Friendly “generating” microcopy
+// Friendly "generating" microcopy
 const HINTS = [
   'Searching the web…',
   'Verifying facts & sources…',
@@ -53,6 +53,42 @@ const HINTS = [
   'Cross-checking results…',
   'Summarizing findings…',
 ];
+
+// Generate follow-up placeholder questions based on last user query
+const generatePlaceholders = (lastUserMessage) => {
+  if (!lastUserMessage) return [];
+  
+  const text = lastUserMessage.toLowerCase();
+  const placeholders = [];
+  
+  // Generic follow-ups
+  const generic = [
+    'Can you explain that in more detail?',
+    'What are some examples?',
+    'Tell me more',
+  ];
+  
+  // Topic-specific follow-ups
+  if (text.includes('what') || text.includes('who') || text.includes('define')) {
+    placeholders.push('Can you give me an example?', 'Why is that important?');
+  } else if (text.includes('how')) {
+    placeholders.push('What are the steps?', 'Are there alternatives?');
+  } else if (text.includes('why')) {
+    placeholders.push('Can you elaborate?', 'What are the implications?');
+  } else if (text.includes('compare') || text.includes('difference')) {
+    placeholders.push('Which is better?', 'What are the pros and cons?');
+  } else {
+    // Default to generic
+    return generic.slice(0, 3);
+  }
+  
+  // Add one generic at the end
+  if (placeholders.length < 3) {
+    placeholders.push(generic[0]);
+  }
+  
+  return placeholders.slice(0, 3);
+};
 
 function App() {
   const [conversations, setConversations] = useState(load);
@@ -68,6 +104,13 @@ function App() {
     [conversations, selectedId]
   );
   const messages = current?.messages || [];
+  
+  // Generate placeholder questions based on the last user message
+  const placeholderQuestions = useMemo(() => {
+    if (messages.length === 0) return [];
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'User');
+    return lastUserMsg ? generatePlaceholders(lastUserMsg.text) : [];
+  }, [messages]);
 
   const startNewChat = () => {
     const id = uid();
@@ -78,6 +121,7 @@ function App() {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         messages: [],
+        isFavorite: false,
       },
       ...conversations,
     ];
@@ -88,6 +132,12 @@ function App() {
   const updateConversation = (id, updater) => {
     setConversations((prev) =>
       prev.map((c) => (c.id === id ? updater({ ...c }) : c))
+    );
+  };
+
+  const toggleFavorite = (id) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, isFavorite: !c.isFavorite } : c))
     );
   };
 
@@ -208,6 +258,7 @@ function App() {
             onSend={sendMessage}
             isLoading={isLoading}
             loadingHint={loadingHint}
+            placeholderQuestions={placeholderQuestions}
           />
         </main>
 
@@ -217,6 +268,7 @@ function App() {
             conversations={conversations}
             selectedId={current?.id}
             onSelect={(id) => setSelectedId(id)}
+            onToggleFavorite={toggleFavorite}
           />
         </aside>
       </div>
