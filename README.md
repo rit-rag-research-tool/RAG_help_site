@@ -181,6 +181,4 @@ OPENAI_API_KEY=your_openai_api_key_here
 - FastAPI uses `--reload` flag for auto-restart on code changes
 - Conversations are stored in browser localStorage only (no database)
 
-## License
 
-MIT
