@@ -6,6 +6,35 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# --- Central place to define allowed help domains ---
+ALLOWED_HELP_DOMAINS = [
+    # RIT (covers all subdomains)
+    "rit.edu",
+
+    # Slack help
+    "slack.com",
+
+    # Microsoft Office / Microsoft 365 help
+    "support.microsoft.com",
+    "learn.microsoft.com",
+    "office.com",
+
+    # Google help / Workspace
+    "support.google.com",
+    "workspace.google.com",
+    "developers.google.com",
+
+    # Adobe help
+    "adobe.com",
+    "helpx.adobe.com",
+    "support.adobe.com",
+
+    # General "help" sites (tweak to taste)
+    "stackoverflow.com",
+    "superuser.com",
+    "serverfault.com",
+]
+
 # regex helpers
 MD_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
 BARE_URL = re.compile(r"https?://\S+")
@@ -58,13 +87,28 @@ def generate_answer(query: str):
     docs = retrieve_docs(query)
     context = "\n".join(docs)
 
-    # Single call: ask the model to ALWAYS put sources in a Sources: section (no inline links)
+    # Updated system message to explain domain restrictions and formatting
     system_msg = (
-        "You are a helpful assistant with web_search access. "
-        "When the answer involves public or recent facts, USE web_search. "
-        "Do NOT put inline links in the body. "
-        "After the answer, add a section exactly titled 'Sources:' and list up to 6 items, "
-        "one per line, in the format 'Title — URL'. Prefer authoritative sites. "
+        "You are a helpful assistant with web_search access.\n"
+        "When the answer involves public or recent facts, USE web_search.\n"
+        "Your web_search tool is restricted to:\n"
+        "• Rochester Institute of Technology sites (rit.edu)\n"
+        "• Slack help\n"
+        "• Microsoft / Office help\n"
+        "• Google help / Workspace docs\n"
+        "• Adobe help\n"
+        "• A few general technical help sites (e.g., Stack Overflow)\n"
+        "Prefer RIT pages when answering RIT-specific questions.\n\n"
+        "FORMATTING GUIDELINES:\n"
+        "• Use **bold** for emphasis and key terms\n"
+        "• Use bullet points (- or •) for lists\n"
+        "• Use numbered lists (1., 2., 3.) for steps or sequences\n"
+        "• Break content into paragraphs (use double line breaks)\n"
+        "• Use clear section headers when appropriate\n"
+        "• Keep paragraphs concise (2-4 sentences max)\n"
+        "• Do NOT put inline links in the body\n\n"
+        "After the answer, add a section exactly titled 'Sources:' and list up to 6 items,\n"
+        "one per line, in the format 'Title — URL'. Prefer authoritative sites.\n"
         "If you searched, include at least one source."
     )
 
@@ -72,13 +116,23 @@ def generate_answer(query: str):
 
     response = client.responses.create(
         model="gpt-5",
-        tools=[{"type": "web_search"}],
+        tools=[
+            {
+                "type": "web_search",
+                "filters": {
+                    # Only search these domains (and their subdomains)
+                    "allowed_domains": ALLOWED_HELP_DOMAINS,
+                },
+            }
+        ],
         input=[
             {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ],
         # temperature=0.2,
         # reasoning={"effort": "medium"},
+        # Optional: if you want the full list of sources as a fallback:
+        # include=["web_search_call.action.sources"],
     )
 
     # Raw text the model returned (may contain 'Sources:' section)
