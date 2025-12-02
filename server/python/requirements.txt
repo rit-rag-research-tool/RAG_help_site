@@ -3,3 +3,4 @@ langchain
 fastapi
 uvicorn
 python-dotenv
+dropbox

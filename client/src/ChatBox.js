@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
 
 export default function ChatBox({ messages, onSend, isLoading = false, loadingHint = "", placeholderQuestions = [] }) {
   const [input, setInput] = useState('');
@@ -26,9 +25,10 @@ export default function ChatBox({ messages, onSend, isLoading = false, loadingHi
           <div key={i} className={`message-row ${roleClass(m.role)}`}>
             <div className={`bubble ${roleClass(m.role)}`}>
               {m.role === 'RAG' ? (
-                <div className="markdown-content">
-                  <ReactMarkdown>{m.text}</ReactMarkdown>
-                </div>
+                <div 
+                  className="html-content"
+                  dangerouslySetInnerHTML={{ __html: m.text }}
+                />
               ) : (
                 m.text
               )}

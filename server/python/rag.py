@@ -51,9 +51,11 @@ def strip_inline_links(text: str) -> str:
 def parse_sources_block(ans: str) -> Tuple[str, List[Dict[str, str]]]:
     """
     Extract a 'Sources:' section from the end of ans, return (body_without_sources, citations[]).
+    Works with both plain text and HTML formatted responses.
     Expected bullet format (flexible):
       - Title — https://example.com
       - https://example.com
+      Or HTML: <li>Title — https://example.com</li>
     """
     citations: List[Dict[str, str]] = []
     body = ans
@@ -63,8 +65,14 @@ def parse_sources_block(ans: str) -> Tuple[str, List[Dict[str, str]]]:
         return body, citations
 
     block = m.group(1).strip()
+    
+    # Remove HTML tags for parsing (like <ul>, <li>, <p>, etc.)
+    import html
+    block_clean = re.sub(r'<[^>]+>', '\n', block)  # Replace tags with newlines
+    block_clean = html.unescape(block_clean)  # Decode HTML entities
+    
     # Split to lines, ignore empty
-    lines = [l.strip(" -*•\t") for l in block.splitlines() if l.strip()]
+    lines = [l.strip(" -*•\t") for l in block_clean.splitlines() if l.strip()]
     for line in lines:
         # find first URL in the line
         url_match = BARE_URL.search(line)
@@ -73,6 +81,8 @@ def parse_sources_block(ans: str) -> Tuple[str, List[Dict[str, str]]]:
         url = url_match.group(0)
         # title is the line with url removed + separators trimmed
         title = line.replace(url, "").strip(" -—:()") or url
+        # Clean up any remaining HTML entities or tags from title
+        title = re.sub(r'<[^>]+>', '', title).strip()
         citations.append({"title": title, "url": url})
 
     # Remove the sources block from the main answer
@@ -80,8 +90,18 @@ def parse_sources_block(ans: str) -> Tuple[str, List[Dict[str, str]]]:
     return body, citations
 
 def retrieve_docs(query: str):
-    # Keep your own retrieval here (stubbed)
-    return ["Document 1", "Document 2"]
+    """
+    Retrieve relevant documents from Dropbox for the given query.
+    Falls back to stub documents if Dropbox is not configured.
+    """
+    try:
+        from dropbox_rag import get_dropbox_rag
+        dropbox_rag = get_dropbox_rag()
+        return dropbox_rag.search_documents(query, max_results=5)
+    except Exception as e:
+        print(f"⚠️  Error retrieving from Dropbox: {e}")
+        print("   Falling back to stub documents")
+        return ["Document 1: Placeholder content", "Document 2: Placeholder content"]
 
 def generate_answer(query: str):
     docs = retrieve_docs(query)
@@ -99,17 +119,55 @@ def generate_answer(query: str):
         "• Adobe help\n"
         "• A few general technical help sites (e.g., Stack Overflow)\n"
         "Prefer RIT pages when answering RIT-specific questions.\n\n"
-        "FORMATTING GUIDELINES:\n"
-        "• Use **bold** for emphasis and key terms\n"
-        "• Use bullet points (- or •) for lists\n"
-        "• Use numbered lists (1., 2., 3.) for steps or sequences\n"
-        "• Break content into paragraphs (use double line breaks)\n"
-        "• Use clear section headers when appropriate\n"
-        "• Keep paragraphs concise (2-4 sentences max)\n"
-        "• Do NOT put inline links in the body\n\n"
-        "After the answer, add a section exactly titled 'Sources:' and list up to 6 items,\n"
-        "one per line, in the format 'Title — URL'. Prefer authoritative sites.\n"
-        "If you searched, include at least one source."
+        "FORMATTING GUIDELINES - Use HTML for maximum readability:\n\n"
+        "1. **Structure Your Response:**\n"
+        "   - Start with a brief overview (1-2 sentences in a <p> tag)\n"
+        "   - Break complex answers into clear sections with headings\n"
+        "   - Use <br> or separate <p> tags for spacing between sections\n\n"
+        "2. **Headings:** Use <h2> for main sections and <h3> for subsections\n"
+        "   Example:\n"
+        "   <h2>How to Connect</h2>\n"
+        "   <h3>On iOS Devices</h3>\n\n"
+        "3. **Emphasis:**\n"
+        "   - Use <strong> or <b> for important terms, names, and key concepts\n"
+        "   - Use <em> or <i> for secondary emphasis or definitions\n\n"
+        "4. **Lists:**\n"
+        "   - Use <ul> and <li> for unordered items or options\n"
+        "   - Use <ol> and <li> for sequential steps or instructions\n"
+        "   - Keep list items concise (1-2 sentences max)\n"
+        "   Example:\n"
+        "   <ol>\n"
+        "     <li>First step here</li>\n"
+        "     <li>Second step here</li>\n"
+        "   </ol>\n\n"
+        "5. **Paragraphs:**\n"
+        "   - Wrap each paragraph in <p> tags\n"
+        "   - Keep paragraphs short (2-4 sentences)\n"
+        "   - Start new paragraphs for new ideas\n\n"
+        "6. **Special Elements:**\n"
+        "   - Use <blockquote> for important notes or warnings\n"
+        "   - Use <code> for technical terms, commands, or file names\n"
+        "   - Use <hr> to separate major sections if needed\n\n"
+        "7. **Readability:**\n"
+        "   - Write in a friendly, conversational tone\n"
+        "   - Use short sentences when possible\n"
+        "   - Avoid jargon unless necessary (then explain it)\n"
+        "   - Use examples when helpful\n\n"
+        "8. **NO inline links in the body** - citations go in the Sources section\n\n"
+        "9. **Important:** Always return valid, well-formed HTML. Close all tags properly.\n\n"
+        "CRITICAL - SOURCES SECTION:\n"
+        "After your HTML formatted answer, you MUST add a plain text section titled 'Sources:'\n"
+        "This section should be OUTSIDE of any HTML tags - just plain text.\n"
+        "Format:\n"
+        "Sources:\n"
+        "Title — URL\n"
+        "Another Title — URL\n\n"
+        "Example:\n"
+        "<p>Your HTML answer here...</p>\n\n"
+        "Sources:\n"
+        "RIT Wi-Fi Setup — https://help.rit.edu/sp?id=kb_article_view&sysparm_article=KB0040936\n"
+        "Network Guide — https://rit.edu/its/networking\n\n"
+        "List at least 1 source. Prefer authoritative sites. If you used web_search, include those sources."
     )
 
     user_msg = f"Context:\n{context}\n\nQuestion: {query}"

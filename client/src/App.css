@@ -164,78 +164,86 @@
   transform: none;
 }
 
-/* Markdown content styling */
-.markdown-content {
+/* HTML content styling for RAG responses */
+.html-content {
   line-height: 1.6;
+  color: inherit;
 }
 
-.markdown-content p {
+.html-content p {
   margin: 0 0 12px 0;
 }
 
-.markdown-content p:last-child {
+.html-content p:last-child {
   margin-bottom: 0;
 }
 
-.markdown-content strong {
+.html-content strong, .html-content b {
   font-weight: 600;
-  color: var(--accent);
+  color: inherit;
 }
 
-.markdown-content ul, .markdown-content ol {
+.html-content em, .html-content i {
+  font-style: italic;
+  opacity: 0.95;
+}
+
+.html-content ul, .html-content ol {
   margin: 8px 0 12px 0;
   padding-left: 24px;
 }
 
-.markdown-content li {
+.html-content li {
   margin: 4px 0;
   line-height: 1.5;
 }
 
-.markdown-content ul li {
+.html-content ul li {
   list-style-type: disc;
 }
 
-.markdown-content ol li {
+.html-content ol li {
   list-style-type: decimal;
 }
 
-.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+.html-content h1, .html-content h2, .html-content h3 {
   margin: 16px 0 10px 0;
   font-weight: 600;
   line-height: 1.3;
+  color: inherit;
 }
 
-.markdown-content h1:first-child,
-.markdown-content h2:first-child,
-.markdown-content h3:first-child {
+.html-content h1:first-child,
+.html-content h2:first-child,
+.html-content h3:first-child {
   margin-top: 0;
 }
 
-.markdown-content h1 {
+.html-content h1 {
   font-size: 1.4em;
-  color: var(--accent);
+  opacity: 1;
 }
 
-.markdown-content h2 {
+.html-content h2 {
   font-size: 1.2em;
-  color: var(--accent);
+  opacity: 0.98;
 }
 
-.markdown-content h3 {
+.html-content h3 {
   font-size: 1.1em;
   opacity: 0.95;
 }
 
-.markdown-content code {
+.html-content code {
   background: rgba(0, 0, 0, 0.3);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
+  color: #e8e8e8;
 }
 
-.markdown-content pre {
+.html-content pre {
   background: rgba(0, 0, 0, 0.3);
   padding: 12px;
   border-radius: 6px;
@@ -243,15 +251,26 @@
   margin: 10px 0;
 }
 
-.markdown-content pre code {
+.html-content pre code {
   background: none;
   padding: 0;
 }
 
-.markdown-content blockquote {
-  border-left: 3px solid var(--accent);
+.html-content blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
   padding-left: 12px;
   margin: 10px 0;
   opacity: 0.9;
   font-style: italic;
+}
+
+.html-content hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 16px 0;
+}
+
+.html-content a {
+  color: var(--accent);
+  text-decoration: underline;
 }
