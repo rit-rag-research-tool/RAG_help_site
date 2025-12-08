@@ -31,9 +31,12 @@ async def title_endpoint(request: Request):
         data = await request.json()
         # Expect: {"messages": [{role:'User'|'RAG'|'System', text:'...'}, ...]}
         msgs = data.get("messages", []) or []
+        print(f"📝 Generating title for {len(msgs)} messages")
         title = generate_title(msgs)
+        print(f"✅ Generated title: {title}")
         return {"title": title}
     except Exception as e:
+        print(f"❌ Title generation error: {e}")
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": "internal_error", "detail": str(e)})
 

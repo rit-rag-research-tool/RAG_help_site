@@ -99,7 +99,7 @@ def retrieve_docs(query: str):
         dropbox_rag = get_dropbox_rag()
         return dropbox_rag.search_documents(query, max_results=5)
     except Exception as e:
-        print(f"⚠️  Error retrieving from Dropbox: {e}")
+        print(f"  Error retrieving from Dropbox: {e}")
         print("   Falling back to stub documents")
         return ["Document 1: Placeholder content", "Document 2: Placeholder content"]
 
@@ -223,6 +223,7 @@ def _serialize_transcript(messages, limit_chars=2000, max_msgs=12) -> str:
     """
     Turn your UI messages into a compact transcript string.
     Keeps the last few turns and trims to ~limit_chars for cheap, fast titles.
+    Strips HTML tags from RAG responses for cleaner titles.
     """
     role_map = {"User": "User", "RAG": "Assistant", "System": "System"}
     lines = []
@@ -232,6 +233,13 @@ def _serialize_transcript(messages, limit_chars=2000, max_msgs=12) -> str:
         t = (m.get("text") or "").strip()
         if not t:
             continue
+        
+        # Strip HTML tags from RAG responses (they're in HTML now)
+        if r == "Assistant":
+            t = re.sub(r'<[^>]+>', ' ', t)  # Replace HTML tags with spaces
+            import html
+            t = html.unescape(t)  # Decode HTML entities like &amp;
+        
         # single-line for compactness
         t = " ".join(t.split())
         lines.append(f"{r}: {t}")
@@ -284,7 +292,6 @@ def generate_title(messages):
                 "content": f"Conversation transcript:\n{transcript}\n\nTitle:",
             },
         ],
-        temperature=0.2,
         # No tools, no JSON schema (to avoid 500s on picky SDKs)
     )
 

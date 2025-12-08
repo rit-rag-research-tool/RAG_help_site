@@ -200,6 +200,7 @@ function App() {
       // 4) If still untitled, ask GPT to generate a title from the short transcript
       if (wasUntitled) {
         try {
+          console.log('Generating title for new conversation...');
           const titleRes = await fetch('/title', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -207,21 +208,29 @@ function App() {
           });
           if (titleRes.ok) {
             const { title } = await titleRes.json();
+            console.log('Title generated:', title);
             if (title && typeof title === 'string') {
               updateConversation(convId, (conv) => {
                 if (conv.title === 'New chat') {
                   conv.title = title;
+                  console.log('Title updated in conversation:', title);
                 }
                 conv.updatedAt = Date.now();
                 return conv;
               });
+            } else {
+              console.warn('Title is invalid:', title);
             }
           } else {
             console.warn('Title endpoint error', titleRes.status);
+            const errorText = await titleRes.text();
+            console.warn('Error response:', errorText);
           }
         } catch (e) {
           console.warn('Title generation failed', e);
         }
+      } else {
+        console.log('Conversation already has title:', current.title);
       }
     } catch (err) {
       console.error(err);
